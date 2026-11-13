@@ -13,24 +13,51 @@ func printToken(t Token) {
 	fmt.Println("Type:", t.Type, "| Lexeme:", t.Lexeme, "| Line:", t.Line, "| Column:", t.Column)
 }
 
-func main() {
-	t1 := Token{Type: "KEYWORD", Lexeme: "let", Line: 1, Column: 1}
-	t2 := Token{Type: "IDENTIFIER", Lexeme: "age", Line: 1, Column: 5}
-	t3 := Token{Type: "ASSIGN", Lexeme: "=", Line: 1, Column: 9}
-	t4 := Token{Type: "NUMBER", Lexeme: "21", Line: 1, Column: 11}
-	t5 := Token{Type: "NUMBER"}
-	printToken(t1)
-	printToken(t2)
-	printToken(t3)
-	printToken(t4)
-	printToken(t5)
+func wordType(word string) string {
 
-	source := "let age = 21"
+	keywords := map[string]bool{
+		"set":    true,
+		"if":     true,
+		"else":   true,
+		"output": true,
+		"true":   true,
+		"false":  true,
+	}
+	if keywords[word] {
+		return "KEYWORD"
+	}
+	return "IDENTIFIER"
+
+}
+func isLetter(ch byte) bool {
+	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch == '_')
+}
+
+func main() {
+	source := "set age = 21"
+	temporary := []byte{}
+	start := -1
+
 	for i := 0; i < len(source); i++ {
 		ch := source[i]
-		if ch == ' '{
-			continue
+		if isLetter(ch) {
+			if len(temporary) == 0 {
+				start = i
+			}
+			temporary = append(temporary, ch)
+		} else {
+			if len(temporary) > 0 {
+				lexeme := string(temporary)
+				token := Token{
+					Type:   wordType(lexeme),
+					Lexeme: lexeme,
+					Line:   1,
+					Column: start + 1,
+				}
+				printToken(token)
+				temporary = []byte{}
+				start = -1
+			}
 		}
-		fmt.Println(i+1, string(ch))
 	}
 }
