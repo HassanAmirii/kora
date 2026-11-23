@@ -1,12 +1,20 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 type Token struct {
 	Type   string
 	Lexeme string
 	Line   int
 	Column int
+}
+
+type SetStatement struct {
+	Name  string
+	Value int
 }
 
 func wordType(word string) string {
@@ -130,12 +138,57 @@ func tokenize(source string) []Token {
 	return tokens
 
 }
+
+func parseSetStatement(tokens []Token) (SetStatement, error) {
+
+	if len(tokens) != 4 {
+		return SetStatement{}, fmt.Errorf("expected 4 tokens, but found %d", len(tokens))
+	}
+
+	firstToken := tokens[0]
+	secondToken := tokens[1]
+	thirdToken := tokens[2]
+	forthToken := tokens[3]
+
+	if firstToken.Type != "KEYWORD" || firstToken.Lexeme != "set" {
+		return SetStatement{}, fmt.Errorf("%d:%d expected the KEYWORD : set. but found %q: %q", firstToken.Line, firstToken.Column, firstToken.Type, firstToken.Lexeme)
+	}
+
+	if secondToken.Type != "IDENTIFIER" {
+		return SetStatement{}, fmt.Errorf("%d:%d expected an IDENTIFIER. but found %q", secondToken.Line, secondToken.Column, secondToken.Type)
+	}
+
+	if thirdToken.Type != "OPERATOR" || thirdToken.Lexeme != "=" {
+		return SetStatement{}, fmt.Errorf("%d:%d expected an OPERATOR (=). but found %q", thirdToken.Line, thirdToken.Column, thirdToken.Lexeme)
+	}
+
+	if forthToken.Type != "NUMBER" {
+		return SetStatement{}, fmt.Errorf("%d:%d expected a NUMBER. but found %q", forthToken.Line, forthToken.Column, forthToken.Type)
+	}
+	value, err := strconv.Atoi(forthToken.Lexeme)
+
+	if err != nil {
+		return SetStatement{}, fmt.Errorf("failed to parse value: %w", err)
+	}
+	return SetStatement{
+		Name:  secondToken.Lexeme,
+		Value: value,
+	}, nil
+
+}
+
 func main() {
 
-	source := `set age >= 21
-set name = "kenny"`
+	source := "love age + 21"
 
 	tokens := tokenize(source)
+	stmt, err := parseSetStatement(tokens)
+
+	if err != nil {
+		fmt.Println("parse error:", err)
+		return
+	}
+	fmt.Println(stmt)
 
 	for _, tokenValue := range tokens {
 		fmt.Printf("Type: %s | Lexeme: %q | Line: %d, Column: %d \n", tokenValue.Type, tokenValue.Lexeme, tokenValue.Line, tokenValue.Column)
