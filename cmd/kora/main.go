@@ -139,16 +139,15 @@ func tokenize(source string) []Token {
 
 }
 
-func parseSetStatement(tokens []Token) (SetStatement, error) {
-
-	if len(tokens) != 4 {
-		return SetStatement{}, fmt.Errorf("expected 4 tokens, but found %d", len(tokens))
+func constructToken(tokensStore []Token) (SetStatement, error) {
+	if len(tokensStore) != 4 {
+		return SetStatement{}, fmt.Errorf("expected 4 tokens, got %d", len(tokensStore))
 	}
 
-	firstToken := tokens[0]
-	secondToken := tokens[1]
-	thirdToken := tokens[2]
-	forthToken := tokens[3]
+	firstToken := tokensStore[0]
+	secondToken := tokensStore[1]
+	thirdToken := tokensStore[2]
+	forthToken := tokensStore[3]
 
 	if firstToken.Type != "KEYWORD" || firstToken.Lexeme != "set" {
 		return SetStatement{}, fmt.Errorf("%d:%d expected the KEYWORD : set. but found %q: %q", firstToken.Line, firstToken.Column, firstToken.Type, firstToken.Lexeme)
@@ -174,24 +173,68 @@ func parseSetStatement(tokens []Token) (SetStatement, error) {
 		Name:  secondToken.Lexeme,
 		Value: value,
 	}, nil
+}
 
+func parseProgram(tokens []Token) ([]SetStatement, error) {
+
+	tokensStore := []Token{}
+	items := []SetStatement{}
+
+	// tokens {
+	// 	   Type: KEYWORD | Lexeme: "set" | Line: 1, Column: 1
+	//     Type: IDENTIFIER | Lexeme: "a" | Line: 1, Column: 5
+	//     Type: OPERATOR | Lexeme: "=" | Line: 1, Column: 7
+	//     Type: NUMBER | Lexeme: "1" | Line: 1, Column: 9
+	//     Type: NEWLINE | Lexeme: "\n" | Line: 1, Column: 10
+	// }
+
+	for i := 0; i < len(tokens); i++ {
+		currentToken := tokens[i]
+
+		if currentToken.Type == "NEWLINE" {
+			if len(tokensStore) > 0 {
+				stmt, err := constructToken(tokensStore)
+				if err != nil {
+					return nil, err
+				}
+				items = append(items, stmt)
+				tokensStore = nil
+			}
+		} else {
+			tokensStore = append(tokensStore, currentToken)
+		}
+	}
+
+	if len(tokensStore) > 0 {
+		stmt, err := constructToken(tokensStore)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, stmt)
+		tokensStore = nil
+	}
+	return items, nil
 }
 
 func main() {
 
-	source := "love age + 21"
+	source := `set a = 1
+
+	
+set b = 2
+set c = 3`
 
 	tokens := tokenize(source)
-	stmt, err := parseSetStatement(tokens)
+	for _, tokenValue := range tokens {
+		fmt.Printf("Type: %s | Lexeme: %q | Line: %d, Column: %d \n", tokenValue.Type, tokenValue.Lexeme, tokenValue.Line, tokenValue.Column)
+	}
+
+	stmt, err := parseProgram(tokens)
 
 	if err != nil {
 		fmt.Println("parse error:", err)
 		return
 	}
 	fmt.Println(stmt)
-
-	for _, tokenValue := range tokens {
-		fmt.Printf("Type: %s | Lexeme: %q | Line: %d, Column: %d \n", tokenValue.Type, tokenValue.Lexeme, tokenValue.Line, tokenValue.Column)
-	}
 
 }
